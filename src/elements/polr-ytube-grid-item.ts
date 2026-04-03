@@ -62,34 +62,34 @@ export class PoLRYTubeGridItem extends LitElement {
         if (this._primaryAction == "play") this._play(this.element);
     }
 
-    private _renderPrimaryAction() {
-        if (this._primaryAction == "more") {
-            return this._renderMoreButton(this.element);
-        }
-
-        if (this._primaryAction == "play") {
-            return this._renderPlayButton(this.element);
-        }
-
-        return html``;
-    }
-
     private _renderMoreButton(element: PoLRYTubeItem) {
         if (!element["can_expand"]) return html``;
 
         return html`
-            <mwc-icon-button @click=${() => this._fireNavigateEvent(element)}>
+            <button
+                class="icon-btn"
+                @click=${(e: Event) => {
+                    e.stopPropagation();
+                    this._fireNavigateEvent(element);
+                }}
+            >
                 ${ForwardBurgerIcon}
-            </mwc-icon-button>
+            </button>
         `;
     }
 
     private _renderPlayButton(element: PoLRYTubeItem) {
         if (!element.can_play) return html``;
         return html`
-            <mwc-icon-button @click=${() => this._play(element)}>
+            <button
+                class="icon-btn"
+                @click=${(e: Event) => {
+                    e.stopPropagation();
+                    this._play(element);
+                }}
+            >
                 ${PlayIcon}
-            </mwc-icon-button>
+            </button>
         `;
     }
 
@@ -101,9 +101,15 @@ export class PoLRYTubeGridItem extends LitElement {
                     : this.entity["attributes"]["videoId"];
 
             return html`
-                <mwc-icon-button @click=${() => this._startRadio(id)}>
+                <button
+                    class="icon-btn"
+                    @click=${(e: Event) => {
+                        e.stopPropagation();
+                        this._startRadio(id);
+                    }}
+                >
                     ${RadioTowerIcon}
-                </mwc-icon-button>
+                </button>
             `;
         }
         return nothing;
@@ -116,7 +122,7 @@ export class PoLRYTubeGridItem extends LitElement {
             </div>`;
         }
 
-        return html` <img class="thumbnail" src="${element.thumbnail}" /> `;
+        return html`<img class="thumbnail" src="${element.thumbnail}" />`;
     }
 
     private async _fireNavigateEvent(element: PoLRYTubeItem) {
@@ -215,10 +221,6 @@ export class PoLRYTubeGridItem extends LitElement {
                     border-radius: 9999px;
                 }
 
-                .actions > mwc-button {
-                    margin: 0 8px;
-                }
-
                 .thumbnail {
                     width: 100%;
                     height: 100%;
@@ -229,6 +231,28 @@ export class PoLRYTubeGridItem extends LitElement {
                     background-color: rgba(111, 111, 111, 0.2);
                     align-items: center;
                     justify-content: center;
+                }
+
+                .icon-btn {
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    padding: 6px;
+                    border-radius: 50%;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #ffffff;
+                }
+
+                .icon-btn:hover {
+                    background: rgba(255, 255, 255, 0.2);
+                }
+
+                .icon-btn svg {
+                    width: 18px;
+                    height: 18px;
+                    fill: currentColor;
                 }
             `,
         ];

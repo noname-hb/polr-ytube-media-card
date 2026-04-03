@@ -5,8 +5,6 @@ import { PoLRYTubeList } from "../elements/polr-ytube-list";
 import { PoLRYTubeBrowser } from "../elements/polr-ytube-browser";
 import "../elements/polr-ytube-list";
 import "../elements/polr-ytube-browser";
-import "@material/mwc-textfield";
-import "@material/mwc-select";
 
 @customElement("polr-ytube-search")
 export class PoLRYTubeSearch extends LitElement {
@@ -30,12 +28,12 @@ export class PoLRYTubeSearch extends LitElement {
     }
 
     _renderResults() {
-        console.log(this._elements);
         return html`
             <polr-ytube-browser
                 .hass=${this._hass}
                 .entity=${this._entity}
-                .initialAction=${this.initialAction}></polr-ytube-browser>
+                .initialAction=${this.initialAction}
+            ></polr-ytube-browser>
         `;
     }
 
@@ -43,27 +41,18 @@ export class PoLRYTubeSearch extends LitElement {
         return html`
             <div class="content">
                 <div class="search">
-                    <mwc-textfield
-                        label="Search "
+                    <input
                         type="search"
                         id="query"
-                        outlined
-                        @keyup="${this.handleKey}">
-                    </mwc-textfield>
-                    <mwc-select
-                        id="filter"
-                        label="Filter"
-                        fixedMenuPosition
-                        naturalMenuWidth>
-                        <mwc-list-item value="all"> All </mwc-list-item>
-                        <mwc-list-item value="artists"> Artists </mwc-list-item>
-                        <mwc-list-item selected value="songs">
-                            Songs
-                        </mwc-list-item>
-                        <mwc-list-item selected value="playlists">
-                            Playlists
-                        </mwc-list-item>
-                    </mwc-select>
+                        placeholder="Search..."
+                        @keyup="${this.handleKey}"
+                    />
+                    <select id="filter">
+                        <option value="all">All</option>
+                        <option value="artists">Artists</option>
+                        <option value="songs" selected>Songs</option>
+                        <option value="playlists">Playlists</option>
+                    </select>
                 </div>
                 <div class="results">${this._renderResults()}</div>
             </div>
@@ -71,8 +60,6 @@ export class PoLRYTubeSearch extends LitElement {
     }
 
     async _fetchResults() {
-        //this._polrYTubeList.state = PoLRYTubeListState.LOADING;
-
         try {
             let response = await this._hass.callWS({
                 type: "media_player/browse_media",
@@ -82,22 +69,15 @@ export class PoLRYTubeSearch extends LitElement {
             });
 
             if (response["children"]?.length > 0) {
-                // TODO: Move to ytube_music_player component,
-                //       instead of handling in frontend
-                // Filter out community playlists of podcast
                 response["children"].filter(
                     (el) => !el["media_content_id"].startsWith("MPSP")
                 );
 
-                //this._polrYTubeList.state = PoLRYTubeListState.HAS_RESULTS;
-                //this._polrYTubeList.elements = response["children"];
                 this._elements = response;
                 this._polrYTubeBrowser.loadElement(response);
-                console.log(this._elements);
                 this.requestUpdate();
-            } //else //this._polrYTubeList.state = PoLRYTubeListState.NO_RESULTS;
+            }
         } catch (e) {
-            // this._polrYTubeList.state = PoLRYTubeListState.ERROR;
             console.error(e);
         }
     }
@@ -110,10 +90,8 @@ export class PoLRYTubeSearch extends LitElement {
     }
 
     async _search() {
-        //this._polrYTubeList.state = PoLRYTubeListState.LOADING;
-        const query = (this.shadowRoot.querySelector("#query") as any).value;
-        const filter = (this.renderRoot.querySelector("#filter") as any)
-            .selected.value;
+        const query = (this.shadowRoot.querySelector("#query") as HTMLInputElement).value;
+        const filter = (this.renderRoot.querySelector("#filter") as HTMLSelectElement).value;
 
         let data;
         if (filter == "all") {
@@ -141,6 +119,32 @@ export class PoLRYTubeSearch extends LitElement {
             grid-template-columns: 1fr min-content;
             align-items: center;
             gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        input[type="search"] {
+            height: 42px;
+            background: rgba(var(--rgb-primary-text-color, 0, 0, 0), 0.06);
+            border: none;
+            border-radius: 4px;
+            color: var(--primary-text-color);
+            font-size: 14px;
+            padding: 0 12px;
+            outline: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        select {
+            height: 42px;
+            background: rgba(var(--rgb-primary-text-color, 0, 0, 0), 0.06);
+            border: none;
+            border-radius: 4px;
+            color: var(--primary-text-color);
+            font-size: 14px;
+            padding: 0 8px;
+            cursor: pointer;
+            outline: none;
         }
     `;
 }

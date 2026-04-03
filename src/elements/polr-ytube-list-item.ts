@@ -35,15 +35,16 @@ export class PoLRYTubeListItem extends LitElement {
 
     render() {
         return html`
-            <mwc-list-item
-                graphic="medium"
-                hasMeta
+            <div
+                class="list-item ${this.current ? "activated" : ""}"
                 @click=${this._performPrimaryAction}
-                ?activated=${this.current}
             >
-                ${this._renderThumbnail(this.element)} ${this.element.title}
-                ${this._renderAction()}
-            </mwc-list-item>
+                <div class="graphic">
+                    ${this._renderThumbnail(this.element)}
+                </div>
+                <span class="primary-text">${this.element.title}</span>
+                <div class="meta">${this._renderAction()}</div>
+            </div>
             ${this._hasAdditionalActions
                 ? html`
                       <div class="divider"></div>
@@ -70,11 +71,11 @@ export class PoLRYTubeListItem extends LitElement {
 
     private _renderAction() {
         if (this._primaryAction == "more") {
-            return html`<span slot="meta">${ForwardBurgerIcon}</span>`;
+            return html`<span class="meta-icon">${ForwardBurgerIcon}</span>`;
         }
 
         if (this._primaryAction == "play") {
-            return html`<ha-icon slot="meta" icon="mdi:play"></ha-icon>`;
+            return html`<ha-icon icon="mdi:play"></ha-icon>`;
         }
 
         return html``;
@@ -84,18 +85,30 @@ export class PoLRYTubeListItem extends LitElement {
         if (!element["can_expand"]) return html``;
 
         return html`
-            <mwc-icon-button @click=${() => this._fireNavigateEvent(element)}>
+            <button
+                class="icon-btn"
+                @click=${(e: Event) => {
+                    e.stopPropagation();
+                    this._fireNavigateEvent(element);
+                }}
+            >
                 ${ForwardBurgerIcon}
-            </mwc-icon-button>
+            </button>
         `;
     }
 
     private _renderPlayButton(element: PoLRYTubeItem) {
         if (!element.can_play) return html``;
         return html`
-            <mwc-icon-button @click=${() => this._play(element)}>
+            <button
+                class="icon-btn"
+                @click=${(e: Event) => {
+                    e.stopPropagation();
+                    this._play(element);
+                }}
+            >
                 ${PlayIcon}
-            </mwc-icon-button>
+            </button>
         `;
     }
 
@@ -107,9 +120,15 @@ export class PoLRYTubeListItem extends LitElement {
                     : this.entity["attributes"]["videoId"];
 
             return html`
-                <mwc-icon-button @click=${() => this._startRadio(id)}>
+                <button
+                    class="icon-btn"
+                    @click=${(e: Event) => {
+                        e.stopPropagation();
+                        this._startRadio(id);
+                    }}
+                >
                     ${RadioTowerIcon}
-                </mwc-icon-button>
+                </button>
             `;
         }
         return nothing;
@@ -117,13 +136,13 @@ export class PoLRYTubeListItem extends LitElement {
 
     private _renderThumbnail(element: PoLRYTubeItem) {
         if (element.thumbnail == "") {
-            return html`<div slot="graphic" class="empty-thumbnail thumbnail">
+            return html`<div class="empty-thumbnail thumbnail">
                 <ha-icon icon="mdi:music-box"></ha-icon>
             </div>`;
         }
 
         return html`
-            <img slot="graphic" class="thumbnail" src="${element.thumbnail}" />
+            <img class="thumbnail" src="${element.thumbnail}" />
         `;
     }
 
@@ -182,10 +201,64 @@ export class PoLRYTubeListItem extends LitElement {
                     align-items: center;
                 }
 
-                mwc-list-item {
+                .list-item {
+                    display: grid;
+                    grid-template-columns: 40px 1fr min-content;
+                    gap: 8px;
+                    align-items: center;
+                    padding: 4px 8px;
                     border-radius: 12px;
+                    cursor: pointer;
+                    min-height: 48px;
                 }
 
+                .list-item:hover {
+                    background: rgba(var(--rgb-primary-text-color), 0.06);
+                }
+
+                .list-item.activated {
+                    background: rgba(var(--rgb-primary-color), 0.15);
+                }
+
+                .graphic {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 40px;
+                    height: 40px;
+                    flex-shrink: 0;
+                }
+
+                .thumbnail {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 5%;
+                    object-fit: cover;
+                }
+
+                .empty-thumbnail {
+                    display: flex;
+                    background-color: rgba(111, 111, 111, 0.2);
+                    border-radius: 5%;
+                    height: 40px;
+                    width: 40px;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .primary-text {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    font-size: 14px;
+                }
+
+                .meta {
+                    display: flex;
+                    align-items: center;
+                }
+
+                .meta-icon svg,
                 svg {
                     width: 18px;
                     height: 18px;
@@ -205,23 +278,26 @@ export class PoLRYTubeListItem extends LitElement {
                     align-items: center;
                 }
 
-                .actions > mwc-button {
-                    margin: 0 8px;
-                }
-
-                .element img {
-                    width: 40px;
-                    height: 40px;
-                    border-radius: 5%;
-                }
-
-                .empty-thumbnail {
-                    display: flex;
-                    background-color: rgba(111, 111, 111, 0.2);
-                    border-radius: 5%;
-                    height: 40px;
+                .icon-btn {
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    padding: 6px;
+                    border-radius: 50%;
+                    display: inline-flex;
                     align-items: center;
                     justify-content: center;
+                    color: var(--primary-text-color);
+                }
+
+                .icon-btn:hover {
+                    background: rgba(var(--rgb-primary-text-color), 0.08);
+                }
+
+                .icon-btn svg {
+                    width: 18px;
+                    height: 18px;
+                    fill: currentColor;
                 }
             `,
         ];

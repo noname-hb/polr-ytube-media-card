@@ -113,6 +113,7 @@ export class PoLRYTubeList extends LitElement {
                     align-items: center;
                     justify-items: center;
                     height: 100px;
+                    color: var(--primary-text-color, #ffffff);
                 }
             `,
         ];

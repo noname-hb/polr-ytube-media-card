@@ -32,8 +32,6 @@ export class PoLRMediaControl extends LitElement {
     progress: any;
     progressSlider: any;
     @property() progressTime: string;
-    volumeMenu: any;
-    volumeButton: any;
 
     async connectedCallback() {
         super.connectedCallback();
@@ -57,17 +55,26 @@ export class PoLRMediaControl extends LitElement {
         this.progressSlider = this.renderRoot.querySelector(
             "#progressSlider"
         ) as any;
-        this.volumeButton = this.renderRoot.querySelector(
-            "#volumeButton"
-        ) as any;
-        this.volumeMenu = this.renderRoot.querySelector("#volumeMenu") as any;
     }
 
     render() {
         return html`
+            <div class="volume-row">
+                <button class="icon-btn" @click=${this._toggleMute}>
+                    ${this.entity?.attributes?.is_volume_muted
+                        ? VolumeOffIcon
+                        : VolumeHighIcon}
+                </button>
+                <polr-slider
+                    id="volume"
+                    min="0"
+                    max="100"
+                    step="1"
+                    @change=${this._changeVolume}
+                ></polr-slider>
+            </div>
             <div class="action-row">
-                ${this._renderVolume()} ${this._renderLikeButton()}
-                ${this._renderRadioButton()}
+                ${this._renderLikeButton()} ${this._renderRadioButton()}
             </div>
             <div class="progress-row">${this._renderProgress()}</div>
             <div class="control-row">
@@ -82,35 +89,35 @@ export class PoLRMediaControl extends LitElement {
         if (!("likeStatus" in this.entity?.attributes)) return html``;
 
         return html`
-            <mwc-icon-button @click=${() => this._likeSong()}>
+            <button class="icon-btn" @click=${() => this._likeSong()}>
                 ${this.entity?.attributes?.likeStatus == "LIKE"
                     ? ThumbUpIcon
                     : ThumbUpOutlineIcon}
-            </mwc-icon-button>
+            </button>
         `;
     }
 
     _renderNext() {
         return html`
-            <mwc-icon-button @click=${this._skipNext}>
+            <button class="icon-btn" @click=${this._skipNext}>
                 ${SkipNextIcon}
-            </mwc-icon-button>
+            </button>
         `;
     }
 
     _renderPlayPause() {
         return html`
-            <mwc-icon-button class="playPause" @click=${this._togglePlayPause}>
+            <button class="icon-btn playPause" @click=${this._togglePlayPause}>
                 ${this.entity.state == "playing" ? PauseIcon : PlayIcon}
-            </mwc-icon-button>
+            </button>
         `;
     }
 
     _renderPrevious() {
         return html`
-            <mwc-icon-button @click=${this._skipPrevious}
-                >${SkipPreviousIcon}
-            </mwc-icon-button>
+            <button class="icon-btn" @click=${this._skipPrevious}>
+                ${SkipPreviousIcon}
+            </button>
         `;
     }
 
@@ -124,8 +131,9 @@ export class PoLRMediaControl extends LitElement {
                     id="progressSlider"
                     min="0"
                     step="1"
-                    max=${Math.round(this.entity?.attributes?.media_duration)}
-                    @change=${this._seekProgress}></polr-slider>
+                    max=${Math.round(this.entity?.attributes?.media_duration ?? 0)}
+                    @change=${this._seekProgress}
+                ></polr-slider>
                 <span>${totalTime}</span>
             </div>
         `;
@@ -133,58 +141,25 @@ export class PoLRMediaControl extends LitElement {
 
     _renderRadioButton() {
         return html`
-            <mwc-icon-button @click=${this._startRadio}
-                >${RadioTowerIcon}
-            </mwc-icon-button>
+            <button class="icon-btn" @click=${this._startRadio}>
+                ${RadioTowerIcon}
+            </button>
         `;
     }
 
     _renderRepeat() {
         return html`
-            <mwc-icon-button @click=${this._changeRepeat}
-                >${RepeatIcon}
-            </mwc-icon-button>
+            <button class="icon-btn" @click=${this._changeRepeat}>
+                ${RepeatIcon}
+            </button>
         `;
     }
 
     _renderShuffle() {
         return html`
-            <mwc-icon-button @click=${this._shuffleList}
-                >${ShuffleVariantIcon}
-            </mwc-icon-button>
-        `;
-    }
-
-    _renderVolume() {
-        return html`
-            <div class="volumeMenuItems">
-                <mwc-icon-button
-                    id="volumeButton"
-                    @click=${() => this.volumeMenu.show()}>
-                    ${VolumeHighIcon}
-                </mwc-icon-button>
-                <mwc-menu
-                    id="volumeMenu"
-                    .anchor=${this.volumeButton}
-                    corner="BOTTOM_START"
-                    menuCorner="START"
-                    naturalmenuwidth
-                    fixed>
-                    <div class="volumeMenuItems">
-                        <mwc-icon-button @click=${this._toggleMute}>
-                            ${this.entity?.attributes?.is_volume_muted
-                                ? VolumeHighIcon
-                                : VolumeOffIcon}
-                        </mwc-icon-button>
-                        <polr-slider
-                            id="volume"
-                            min="0"
-                            max="100"
-                            steps="1"
-                            @change=${this._changeVolume}></polr-slider>
-                    </div>
-                </mwc-menu>
-            </div>
+            <button class="icon-btn" @click=${this._shuffleList}>
+                ${ShuffleVariantIcon}
+            </button>
         `;
     }
 
@@ -267,7 +242,7 @@ export class PoLRMediaControl extends LitElement {
     async _toggleMute() {
         this.hass.callService("media_player", "volume_mute", {
             entity_id: this.entity["entity_id"],
-            is_volume_muted: false,
+            is_volume_muted: !this.entity?.attributes?.is_volume_muted,
         });
     }
 
@@ -313,9 +288,38 @@ export class PoLRMediaControl extends LitElement {
                     gap: 4px;
                 }
 
+                .icon-btn {
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    padding: 8px;
+                    border-radius: 50%;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: var(--primary-text-color);
+                }
+
+                .icon-btn:hover {
+                    background: rgba(var(--rgb-primary-text-color), 0.08);
+                }
+
+                .icon-btn svg {
+                    width: 24px;
+                    height: 24px;
+                    fill: currentColor;
+                }
+
+                .volume-row {
+                    display: grid;
+                    grid-template-columns: min-content 1fr;
+                    align-items: center;
+                    padding: 0 4px;
+                }
+
                 .action-row {
                     display: grid;
-                    grid-template-columns: min-content min-content min-content;
+                    grid-template-columns: min-content min-content;
                     justify-content: space-evenly;
                 }
 
@@ -328,45 +332,30 @@ export class PoLRMediaControl extends LitElement {
                     display: grid;
                     grid-template-columns: min-content min-content min-content min-content min-content;
                     align-items: center;
-
                     justify-content: space-evenly;
                 }
 
-                .playPause {
-                    --mdc-icon-button-size: 64px;
-                    --mdc-icon-size: 48px;
+                .playPause svg {
+                    width: 48px;
+                    height: 48px;
                 }
+
+                .playPause {
+                    padding: 8px;
+                }
+
                 .time {
                     display: grid;
                     grid-template-columns: min-content 1fr min-content;
                     align-items: center;
                 }
 
-                #volumeSlider {
-                    transform: rotate(-90deg);
-                }
-
                 #volume {
                     --md-sys-color-primary: var(--primary-color);
-                    --md-slider-handle-height: 10px;
-                    --md-slider-handle-shape: 9999px;
-                    --md-slider-active-track-shape: 9999px;
-                    --md-slider-inactive-track-shape: 4px;
-                    --md-slider-active-track-height: 5px;
-                    --md-slider-inactive-track-height: 5px;
                 }
 
                 #progressSlider {
                     --md-sys-color-primary: var(--primary-color);
-                    --md-slider-active-track-shape: 4px;
-                    --md-slider-inactive-track-shape: 4px;
-                }
-
-                .volumeMenuItems {
-                    display: grid;
-                    grid-template-columns: min-content 1fr;
-                    align-items: center;
-                    padding: 0 12px;
                 }
             `,
         ];

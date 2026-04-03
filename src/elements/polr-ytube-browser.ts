@@ -12,8 +12,6 @@ import { map } from "lit/directives/map.js";
 import { PoLRYTubeList } from "./polr-ytube-list";
 import { PoLRYTubeItem, PoLRYTubeListState } from "../utils/utils";
 import { ArrowLeftIcon, CloseIcon } from "../utils/icons";
-import "../shared/polr-select";
-import "../shared/polr-textfield";
 
 @customElement("polr-ytube-browser")
 export class PoLRYTubeBrowser extends LitElement {
@@ -21,6 +19,7 @@ export class PoLRYTubeBrowser extends LitElement {
     @state() public hass: any;
     @property() public initialAction: PoLRYTubeItem;
     @property() public coverNavigation: boolean;
+    @property({ type: Boolean }) public hideSearch: boolean = false;
     @state() public initialElements: PoLRYTubeItem;
     @state() private _browseHistory: PoLRYTubeItem[] = [];
     @state() private _previousBrowseHistory: PoLRYTubeItem[] = [];
@@ -60,39 +59,43 @@ export class PoLRYTubeBrowser extends LitElement {
     }
 
     _renderSearch() {
+        if (this.hideSearch) return nothing;
         return html`
             <div class="search">
-                <polr-textfield
-                    type="search"
-                    id="query"
-                    icon
-                    @keyup="${this._handleSearchInput}"
-                >
-                    <ha-icon slot="icon" icon="mdi:magnify"></ha-icon>
-                </polr-textfield>
-
-                <polr-select
-                    id="filter"
-                    fixedMenuPosition
-                    naturalMenuWidth
-                    @selected=${this._search}
-                >
-                    <mwc-list-item value="all"> All </mwc-list-item>
-                    <mwc-list-item value="artists"> Artists </mwc-list-item>
-                    <mwc-list-item selected value="songs">
-                        Songs
-                    </mwc-list-item>
-                    <mwc-list-item selected value="playlists">
-                        Playlists
-                    </mwc-list-item>
-                </polr-select>
+                <div class="search-input-wrap">
+                    <ha-icon icon="mdi:magnify" class="search-icon"></ha-icon>
+                    <input
+                        type="search"
+                        id="query"
+                        placeholder="Search..."
+                        @keyup="${this._handleSearchInput}"
+                    />
+                </div>
+                <select id="filter" @change=${this._search}>
+                    <option value="all">All</option>
+                    <option value="artists">Artists</option>
+                    <option value="songs" selected>Songs</option>
+                    <option value="playlists">Playlists</option>
+                </select>
             </div>
         `;
     }
 
     public loadElement(element: PoLRYTubeItem) {
         this._browseHistory = [];
+        this._isSearchResults = false;
         this._browse(element);
+    }
+
+    public async searchExternal(query: string) {
+        if (!query || query === "") return;
+        const data = {
+            entity_id: this.entity?.entity_id,
+            query: query,
+            limit: 40,
+        };
+        await this.hass.callService("ytube_music_player", "search", data);
+        this._fetchSearchResults();
     }
 
     async _browse(element: PoLRYTubeItem) {
@@ -104,12 +107,13 @@ export class PoLRYTubeBrowser extends LitElement {
             this._polrYTubeList.state = PoLRYTubeListState.HAS_RESULTS;
         } else {
             try {
-                const response = await this.hass.callWS({
+                const wsParams: any = {
                     type: "media_player/browse_media",
                     entity_id: this.entity["entity_id"],
-                    media_content_type: element.media_content_type,
-                    media_content_id: element.media_content_id,
-                });
+                };
+                if (element.media_content_type != null) wsParams.media_content_type = element.media_content_type;
+                if (element.media_content_id != null) wsParams.media_content_id = element.media_content_id;
+                const response = await this.hass.callWS(wsParams);
 
                 this._polrYTubeList.elements = response["children"];
                 this._polrYTubeList.state = PoLRYTubeListState.HAS_RESULTS;
@@ -137,9 +141,6 @@ export class PoLRYTubeBrowser extends LitElement {
             });
 
             if (response["children"]?.length > 0) {
-                // TODO: Move to ytube_music_player component,
-                //       instead of handling in frontend
-                // Filter out community playlists of podcast
                 response["children"].filter(
                     (el) => !el["media_content_id"].startsWith("MPSP")
                 );
@@ -188,7 +189,8 @@ export class PoLRYTubeBrowser extends LitElement {
             <div class="navigation-row">
                 ${this._isSearchResults
                     ? html`
-                          <mwc-icon-button
+                          <button
+                              class="icon-btn"
                               @click=${() => {
                                   this._isSearchResults = false;
                                   this._browseHistory =
@@ -198,12 +200,13 @@ export class PoLRYTubeBrowser extends LitElement {
                               }}
                           >
                               ${CloseIcon}
-                          </mwc-icon-button>
+                          </button>
                       `
                     : nothing}
                 ${this._browseHistory.length > 1
                     ? html`
-                          <mwc-icon-button
+                          <button
+                              class="icon-btn"
                               @click=${() =>
                                   this._browse(
                                       this._browseHistory.pop() &&
@@ -211,11 +214,11 @@ export class PoLRYTubeBrowser extends LitElement {
                                   )}
                           >
                               ${ArrowLeftIcon}
-                          </mwc-icon-button>
+                          </button>
                       `
                     : nothing}
                 ${this._browseHistory.length > 1 || this._isSearchResults
-                    ? html` <div class="breadcrumb">${breadcrumb}</div> `
+                    ? html`<div class="breadcrumb">${breadcrumb}</div>`
                     : nothing}
             </div>
         `;
@@ -223,14 +226,12 @@ export class PoLRYTubeBrowser extends LitElement {
 
     private _renderPlay() {
         const element = this._browseHistory[this._browseHistory.length - 1];
-        console.log(element);
         if (element?.can_play) {
             return html`
                 <div class="playable_result">
                     ${element.title}
-                    <mwc-button
-                        raised
-                        dense
+                    <button
+                        class="play-btn"
                         @click=${() =>
                             this.hass.callService(
                                 "media_player",
@@ -244,7 +245,7 @@ export class PoLRYTubeBrowser extends LitElement {
                             )}
                     >
                         Play
-                    </mwc-button>
+                    </button>
                 </div>
             `;
         }
@@ -258,11 +259,10 @@ export class PoLRYTubeBrowser extends LitElement {
     }
 
     async _search() {
-        const query = (this.shadowRoot.querySelector("#query") as any)?.value;
-        const filter = (this.renderRoot.querySelector("#filter") as any)
-            ?.selected.value;
+        const query = (this.shadowRoot.querySelector("#query") as HTMLInputElement)?.value;
+        const filter = (this.renderRoot.querySelector("#filter") as HTMLSelectElement)?.value;
 
-        if (query == "") return;
+        if (!query || query == "") return;
 
         let data;
         if (filter == "all") {
@@ -300,8 +300,6 @@ export class PoLRYTubeBrowser extends LitElement {
                     align-items: center;
                     gap: 4px;
                     justify-content: flex-start;
-                    --mdc-icon-button-size: 30px;
-                    --mdc-icon-size: 20px;
                 }
 
                 .breadcrumb {
@@ -334,6 +332,44 @@ export class PoLRYTubeBrowser extends LitElement {
                     gap: 4px;
                 }
 
+                .search-input-wrap {
+                    display: flex;
+                    align-items: center;
+                    background: rgba(var(--rgb-primary-text-color), 0.06);
+                    border-radius: 4px;
+                    padding: 0 8px;
+                    height: 42px;
+                    gap: 4px;
+                }
+
+                .search-input-wrap input {
+                    flex: 1;
+                    background: none;
+                    border: none;
+                    outline: none;
+                    color: var(--primary-text-color);
+                    font-size: 14px;
+                    height: 100%;
+                }
+
+                .search-input-wrap ha-icon {
+                    --mdc-icon-size: 18px;
+                    opacity: 0.6;
+                }
+
+                select {
+                    height: 42px;
+                    background: rgba(var(--rgb-primary-text-color), 0.06);
+                    border: none;
+                    border-radius: 4px;
+                    color: var(--primary-text-color);
+                    font-size: 14px;
+                    padding: 0 8px;
+                    cursor: pointer;
+                    outline: none;
+                    width: 100%;
+                }
+
                 .playable_result {
                     display: inline-flex;
                     justify-content: space-between;
@@ -344,13 +380,43 @@ export class PoLRYTubeBrowser extends LitElement {
                     overflow: auto;
                 }
 
-                #filter {
-                    --select-height: 42px;
-                    width: 100%;
+                .icon-btn {
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    padding: 6px;
+                    border-radius: 50%;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: var(--primary-text-color);
+                    width: 30px;
+                    height: 30px;
                 }
 
-                #query {
-                    --textfield-height: 42px;
+                .icon-btn:hover {
+                    background: rgba(var(--rgb-primary-text-color), 0.08);
+                }
+
+                .icon-btn svg {
+                    width: 20px;
+                    height: 20px;
+                    fill: currentColor;
+                }
+
+                .play-btn {
+                    background: var(--primary-color);
+                    color: var(--text-primary-color);
+                    border: none;
+                    border-radius: 4px;
+                    padding: 6px 16px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
+
+                .play-btn:hover {
+                    opacity: 0.9;
                 }
             `,
         ];

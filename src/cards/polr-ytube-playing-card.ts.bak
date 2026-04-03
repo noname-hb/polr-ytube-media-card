@@ -130,17 +130,11 @@ export class PoLRYTubePlayingCard extends LitElement {
         if (target) this._browser.loadElement(target);
     }
 
-    private _onPillsWheel(e: WheelEvent) {
-        if (e.deltaY === 0) return;
-        e.preventDefault();
-        (e.currentTarget as HTMLElement).scrollLeft += e.deltaY;
-    }
-
     render() {
         return html`
             <ha-card>
                 ${this._searchActive ? this._renderSearchHeader() : this._renderHeader()}
-                <div class="pills-container" @wheel=${this._onPillsWheel}>
+                <div class="pills-container">
                     <div class="pills-row">
                         ${YT_FILTERS.map((f, i) => html`
                             <button
@@ -449,8 +443,13 @@ export class PoLRYTubePlayingCard extends LitElement {
             .pills-row {
                 display: flex;
                 gap: 8px;
+                overflow-x: auto;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
                 padding-bottom: 2px;
             }
+
+            .pills-row::-webkit-scrollbar { display: none; }
 
             .pill {
                 flex-shrink: 0;
